@@ -16,6 +16,8 @@ Project running
 java -jar revolut-txmgr.jar
 
 TODO
+
+Service for create account etc, At-present hardcoded and initialized 18 accounts with account id{1 to 18}
 Unit test 
 Many improvements can be done
 

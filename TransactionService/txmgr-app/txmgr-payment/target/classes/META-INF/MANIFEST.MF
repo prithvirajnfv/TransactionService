@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Implementation-version: 
+Built-By: PrithvirajS
+Project-version: 0.0.1-SNAPSHOT
+Build-Jdk: 1.8.0_121
+Created-By: Maven Integration for Eclipse
+Hash-version: 
+

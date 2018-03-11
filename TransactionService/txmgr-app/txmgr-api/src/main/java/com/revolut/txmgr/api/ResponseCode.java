@@ -1,22 +1,18 @@
 package com.revolut.txmgr.api;
 
 /**
- * Response Status codes.<br/>
- * Code series:
- * <pre>
- * 0xx - success
- * 1xx - failures (non-final)
- * 2xx - two phase
- * </pre>
+ * Response Status codes.
  */
 public enum ResponseCode {
+	// None
+	NONE(0, "None"),
     // success
     SUCCESS(1, "Success"),
     
     //failures
     NOT_FOUND(100, "Transaction not found"),
-    INVALID_SOURCE_ACCOUNT(101, "Source account does not exist"),
-    INVALID_TARGET_ACCOUNT(102, "Target account does not exist"),
+    INVALID_SOURCE_ACCOUNT(101, "Invalid source account"),
+    INVALID_TARGET_ACCOUNT(102, "Invalid target account"),
     
     LOCKED_SOURCE_ACCOUNT(103, "Source account is locked"),
     LOCKED_TARGET_ACCOUNT(104, "Target account is locked"),

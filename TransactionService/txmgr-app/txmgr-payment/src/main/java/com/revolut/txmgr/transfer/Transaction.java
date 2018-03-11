@@ -7,25 +7,14 @@ import com.revolut.txmgr.api.ResponseCode;
 public class Transaction {
 
     private final UUID transactionId;
-    /**
-     * for now, it's always success. Reserved for two-phase payments.
-     */
-    private final ResponseCode responseCode;
+    private ResponseCode responseCode;
     private final long sourceAccountId;
-    /**
-     * minor units
-     */
     private final long sourceAmount;
     private final Currency sourceCurrency;
-
     private final long targetAccountId;
-    /**
-     * minor units
-     */
     private final long targetAmount;
     private final Currency targetCurrency;
-
-    private final String comment;
+    private final String remarks;
 
 
     /**
@@ -37,26 +26,29 @@ public class Transaction {
      * @param targetAccountId
      * @param targetAmount
      * @param targetCurrency
-     * @param comment
+     * @param remarks
      */
-    public Transaction(UUID transactionId, ResponseCode responseCode,
+    public Transaction(UUID transactionId, 
                         long sourceAccountId, long sourceAmount, Currency sourceCurrency,
                         long targetAccountId, long targetAmount, Currency targetCurrency,
-                        String comment) {
+                        String remarks) {
         this.transactionId = transactionId;
-        this.responseCode = responseCode;
         this.sourceAccountId = sourceAccountId;
         this.sourceAmount = sourceAmount;
         this.sourceCurrency = sourceCurrency;
         this.targetAccountId = targetAccountId;
         this.targetAmount = targetAmount;
         this.targetCurrency = targetCurrency;
-        this.comment = comment;
+        this.remarks = remarks;
     }
 
 
 	public ResponseCode getResponseCode() {
 		return responseCode;
+	}
+	
+	public void setResponseCode(ResponseCode responseCode) {
+		this.responseCode = responseCode;
 	}
 
 }

@@ -28,7 +28,7 @@ public class TransactionController {
 	
 	private static Map<Long, AccountStorage.Account> accounts=null;
 	static{
-		accounts = createDefaultAccounts();
+		accounts = createAccounts();
 
         AccountStorage accountStorage = new AccountStorage(accounts);
 
@@ -36,9 +36,11 @@ public class TransactionController {
 	}
 	
 		
-	static Map<Long, AccountStorage.Account> createDefaultAccounts() {
+	static Map<Long, AccountStorage.Account> createAccounts() {
         Map<Long, AccountStorage.Account> accounts = new ConcurrentHashMap<>();
         for (int i = 0; i < 18; i++) {
+	    //TODO: For now account id is long which could be alphanumeric
+	    //TODO: Account can have more information like name, address, sson etc
             long accountId = i + 1;
             AccountStorage.Account account = new AccountStorage.Account(accountId, Currency.USD, 0, 10000);
             accounts.put(accountId, account);
@@ -46,17 +48,41 @@ public class TransactionController {
         return accounts;
     }
 	
-	@GET
-    @Path("api/status/{transactionId}")
+	/*@POST
+	@Path("api/account/add")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-    public TransferStatusResponseDTO getTransferStatus(@PathParam("transactionId")String transactionId) {
+	public CreateAccountResponseDTO createAccount(CreateAccountRequestDTO req) {
+		//TODO
+	}*/
+	
+	/*@POST
+	@Path("api/account/update")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public CreateAccountResponseDTO updateAccount(CreateAccountRequestDTO req) {
+		//TODO
+	}*/
+	
+	/*@POST
+	@Path("api/account/remove")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public APIResponseDTO removeAccount(APIRequestDTO accountKey) {
+		//TODO
+	}*/
+	
+	@GET
+        @Path("api/status/{transactionId}")
+	@Produces(MediaType.APPLICATION_JSON)
+        public TransferStatusResponseDTO getTransferStatus(@PathParam("transactionId")String transactionId) {
 		UUID transactionUUId = UUID.fromString(transactionId);
         ResponseCode responseCode = transferService.processTransferStatus(transactionUUId);
 
         return new TransferStatusResponseDTO()
                 .setTransactionId(transactionId)
                 .setResponseCode(responseCode);
-    }
+        }
 	
 	@POST
 	@Path("api/transfer")

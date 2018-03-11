@@ -1,7 +1,7 @@
 package com.revolut.txmgr.transfer;
 
 import com.revolut.txmgr.api.ResponseCode;
-import com.revolut.txmgr.api.json.TransferRequestDTO;
+import com.revolut.txmgr.api.dto.TransferRequestDTO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,13 +40,12 @@ public class AccountStorage {
         
         long targetAmount = sourceAmount; // TODO: Using currency converter calculate target amount
 
-        checkAccounts(sourceAccountId, targetAccountId);
-        checkAmount(sourceAmount, sourceCurrency, targetAmount, targetCurrency);
-
+        // TODO: Add few validations
+        
         Thread currentThread = Thread.currentThread();
         do {
             TransactionReference transactionRef = transactions.computeIfAbsent(transactionId, k -> new TransactionReference(currentThread));
-            boolean rolledback = false;
+                        
             try {
                 synchronized (transactionRef) {
                     // operation is created and going to be processed by another thread, let it get in to complete (we wait)
@@ -54,7 +53,7 @@ public class AccountStorage {
                         assert transactionRef.getState() == TransactionPhase.INITIALIZED;
                         assert transactionRef.getTransaction() == null;
                         try {
-                            transactionRef.wait(1000L);
+                            transactionRef.wait(900);
                         } catch (InterruptedException e) {
                             throw new RuntimeException("interrupted");
                         }
@@ -63,10 +62,9 @@ public class AccountStorage {
                     // operation is complete by another thread
                     if (transactionRef.getThread() == null) {
                         if (transactionRef.getState() == TransactionPhase.ROLLED_BACK) {
-                            // try one more time
-                            // Let other thread to remove rolled back TransactionReference
-                            rolledback = true;
-                            continue;
+                            // rolled back transaction
+                        	ResponseCode responseCode = transactionRef.getTransaction().getResponseCode();
+                            return responseCode;
                         }
                         assert transactionRef.getState() == TransactionPhase.COMMITED;
                         ResponseCode responseCode = transactionRef.getTransaction().getResponseCode();
@@ -80,22 +78,26 @@ public class AccountStorage {
 
                     synchronized (sourceAccount) {
                         synchronized (targetAccount) {
-                            if (!sourceAccount.ensureAvailableToWithdraw(sourceAmount)) {
-                                logger.warn("Not enough balance on account {}: {}, txn {}",
-                                        sourceAccountId, sourceAccount.getBalance(), transactionId);
-                                transactionRef.rollback();
-                                return ResponseCode.INSUFFICIENT_BALANCE;
-                            }
-
-                            Transaction transaction = new Transaction(transactionId, ResponseCode.SUCCESS,
+                        	
+                        	Transaction transaction = new Transaction(transactionId, 
                                     sourceAccountId, sourceAmount, sourceCurrency,
                                     targetAccountId, targetAmount, targetCurrency,
                                     transferReqDto.getRemarks());
+                        	
+                        	//Failure Conditions
+                            if (!sourceAccount.ensureAvailableToWithdraw(sourceAmount)) {
+                                if(logger.isInfoEnabled()) logger.info("Not enough balance on account {}: {}, txn {}",
+                                        sourceAccountId, sourceAccount.getBalance(), transactionId);
+                                transaction.setResponseCode(ResponseCode.INSUFFICIENT_BALANCE);
+                                transactionRef.rollback(transaction);
+                                return ResponseCode.INSUFFICIENT_BALANCE;
+                            }
+                            //TODO add more failure conditions
 
                             // all checks made, now the balance changing logic
                             sourceAccount.transact(-sourceAmount);
                             targetAccount.transact(targetAmount);
-
+                            transaction.setResponseCode(ResponseCode.SUCCESS);
                             transactionRef.commit(transaction);
                         }
                     }
@@ -107,34 +109,12 @@ public class AccountStorage {
                     return ResponseCode.SUCCESS;
                 }
             } finally {
-                if (rolledback) {
-                    transactions.remove(transactionId, transactionRef);
-                }
+                // TODO: Logic to handle in any unexpected error scenario
             }
         } while (true);
     }
 
-    private static void checkAccounts(long sourceAccountId, long targetAccountId) {
-        if (sourceAccountId <= 0L) {
-            throw new IllegalArgumentException("Illegal sourceAccountId " + sourceAccountId);
-        }
-        if (targetAccountId <= 0L) {
-            throw new IllegalArgumentException("Illegal targetAccountId " + targetAccountId);
-        }
-        if (sourceAccountId == targetAccountId) {
-            throw new IllegalArgumentException("Transactions on the same accounts are forbidden " + sourceAccountId);
-        }
-    }
-
-    private static void checkAmount(long sourceAmount, Currency sourceCurrency, long targetAmount, Currency targetCurrency) {
-        if (sourceCurrency == null || targetCurrency == null) {
-            throw new IllegalArgumentException("Currency not set");
-        }
-        if (sourceAmount <= 0 || targetAmount <= 0) {
-            throw new IllegalArgumentException("Illegal amounts " + sourceAmount + " " + targetAmount);
-        }
-    }
-
+    
     public ResponseCode getTransferStatus(UUID transactionId) {
         TransactionReference ref = transactions.get(transactionId);
         if (ref == null) {
@@ -154,7 +134,7 @@ public class AccountStorage {
         private final long accountId;
         private final Currency currency;
         private final long minimumBalance;
-        private long balance;
+        private long currentBalance;
 
         public Account(long accountId, Currency currency, long minBalance, long balance) {
             if (balance < minBalance) {
@@ -163,7 +143,7 @@ public class AccountStorage {
             this.accountId = accountId;
             this.currency = currency;
             this.minimumBalance = minBalance;
-            this.balance = balance;
+            this.currentBalance = balance;
         }
 
         public long accountId() {
@@ -176,29 +156,29 @@ public class AccountStorage {
 
         private boolean ensureAvailableToWithdraw(long amount) {
             assert Thread.holdsLock(this);
-            return balance - amount >= minimumBalance;
+            return currentBalance - amount >= minimumBalance;
         }
 
         /**
-         * @param amount positive: enroll, negative - withdraw
+         * @param amount positive: transfer, negative: withdraw
          */
         private void transact(long amount) {
             assert Thread.holdsLock(this);
-            long newBalance = this.balance + amount;
+            long newBalance = this.currentBalance + amount;
             assert newBalance >= minimumBalance;
-            this.balance = newBalance;
+            this.currentBalance = newBalance;
         }
 
         public synchronized long getBalance() {
-            return balance;
+            return currentBalance;
         }
 
         @Override
         public String toString() {
             return "Account{" +
                     "accountId=" + accountId +
-                    ", lowerLimit=" + minimumBalance +
-                    ", balance=" + balance +
+                    ", minimumBalance=" + minimumBalance +
+                    ", currentBalance=" + currentBalance +
                     '}';
         }
     }

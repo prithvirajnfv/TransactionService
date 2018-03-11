@@ -1,7 +1,7 @@
 package com.revolut.txmgr.transfer;
 
 import com.revolut.txmgr.api.ResponseCode;
-import com.revolut.txmgr.api.dto.TransferRequestDTO;
+import com.revolut.txmgr.api.json.TransferRequestDTO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

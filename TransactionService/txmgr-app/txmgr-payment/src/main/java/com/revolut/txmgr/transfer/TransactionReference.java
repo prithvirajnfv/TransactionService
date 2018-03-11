@@ -5,7 +5,7 @@ public class TransactionReference {
     private Thread thread;
     private TransactionPhase state;
     private Transaction transaction;
-
+    
     TransactionReference(Thread thread) {
         this.thread = thread;
         this.state = TransactionPhase.INITIALIZED;
@@ -23,7 +23,7 @@ public class TransactionReference {
         this.transaction = transaction;
     }
 
-    public void rollback() {
+    public void rollback(Transaction transaction) {
         assert Thread.holdsLock(this);
 
         assert this.thread != null;
@@ -32,6 +32,7 @@ public class TransactionReference {
 
         this.thread = null;
         this.state = TransactionPhase.ROLLED_BACK;
+        this.transaction = transaction;
     }
 
     public Transaction getTransaction() {
